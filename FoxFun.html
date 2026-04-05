@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FunFox | Entdecke das Internet</title>
+    <title>FunFox 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -15,31 +15,26 @@
         }
         .card-gradient {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.5s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .card-gradient:not(.locked):hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
         
-        /* Zustand: Gesperrt (Grau) */
         .locked {
             filter: grayscale(1) brightness(0.5);
             cursor: default;
             border: 2px dashed #334155 !important;
         }
 
-        /* Zustand: Kaufbar (Farbig + Wackeln) */
         .can-buy {
-            filter: grayscale(0) brightness(1);
             border: 2px solid #f97316 !important;
             animation: wiggle 3s infinite;
             cursor: pointer;
         }
 
-        /* Zustand: Freigeschaltet (Farbig, kein Wackeln) */
         .unlocked {
-            filter: grayscale(0) brightness(1);
             border: 1px solid rgba(249, 115, 22, 0.3) !important;
         }
 
@@ -52,10 +47,6 @@
             100% { transform: rotate(0deg); }
         }
 
-        .fox-logo {
-            filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.5));
-        }
-        
         #achievement-popup {
             position: fixed;
             bottom: -100px;
@@ -72,136 +63,161 @@
             transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 1000;
         }
-        #achievement-popup.show {
-            bottom: 20px;
-        }
+        #achievement-popup.show { bottom: 20px; }
 
-        #app-overlay {
+        #app-overlay, #admin-panel, #pin-overlay {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #0f172a;
             z-index: 100;
-            overflow-y: auto;
         }
 
-        .click-pop {
-            animation: pop 0.1s ease-out;
+        #app-overlay { background: #0f172a; }
+
+        #pin-overlay {
+            background: #0f172a;
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
         }
-        @keyframes pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.95); }
-            100% { transform: scale(1); }
+
+        #admin-panel {
+            z-index: 400;
+            background: #0f172a;
         }
+
+        input[type="date"], input[type="number"], input[type="password"] { color-scheme: dark; }
     </style>
 </head>
 <body>
 
-    <!-- Achievement Notification -->
+    <!-- Minimal PIN Modal -->
+    <div id="pin-overlay">
+        <div class="w-full max-w-sm px-6 text-center">
+            <input type="password" id="pin-input" placeholder="•••••" class="w-full bg-transparent border-b-2 border-slate-700 p-4 text-center text-4xl tracking-[0.5em] outline-none focus:border-orange-500 mb-8 transition-colors text-white">
+            <button onclick="checkAdminPin()" class="w-full py-4 text-slate-400 hover:text-orange-500 font-black uppercase italic text-xs tracking-[0.3em] transition-colors mb-4">Bestätigen</button>
+            <button onclick="closePinModal()" class="text-slate-600 hover:text-white text-[10px] uppercase tracking-widest transition-colors">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Achievement Popup -->
     <div id="achievement-popup">
         <div class="bg-blue-500/20 p-2 rounded">
             <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6.2 4.5 2.4 7.3-6.2-4.5-6.2 4.5 2.4-7.3-6.2-4.5h7.6z"/></svg>
         </div>
         <div>
             <div class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Erfolg</div>
-            <div id="achievement-name" class="text-white font-bold leading-tight">Bereit zum Kauf!</div>
+            <div id="achievement-name" class="text-white font-bold leading-tight italic">Bereit zum Kauf!</div>
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="p-8 overflow-y-auto">
+        <div class="max-w-xl mx-auto">
+            <div class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+                <h2 class="text-3xl font-black text-red-500 uppercase italic">Admin Panel</h2>
+                <button onclick="closeAdmin()" class="text-slate-400 hover:text-white">Schließen [ESC]</button>
+            </div>
+            <div class="space-y-6">
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                    <label class="block text-sm font-bold text-slate-400 mb-2 uppercase italic">Taler setzen</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="admin-coins-input" class="bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 w-full outline-none focus:border-orange-500">
+                        <button onclick="adminSetCoins()" class="bg-orange-600 px-6 py-2 rounded-xl font-bold uppercase tracking-tighter">SET</button>
+                    </div>
+                </div>
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                    <label class="block text-sm font-bold text-slate-400 mb-4 uppercase italic">Apps Freischalten</label>
+                    <div class="grid grid-cols-1 gap-2" id="admin-unlock-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <header class="py-8 px-4 text-center">
         <div class="flex justify-center items-center gap-4 mb-2">
-            <svg class="fox-logo w-12 h-12 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" />
-            </svg>
-            <h1 class="text-5xl font-900 tracking-tighter italic">FUNFOX</h1>
+            <h1 class="text-5xl font-black tracking-tighter italic text-orange-500">FUNFOX</h1>
         </div>
-        <div class="text-2xl font-black text-orange-500 mb-2" id="home-counter">🦊 0</div>
-        <p class="text-slate-400">Sammle Taler, schalte Spiele frei!</p>
-        <button onclick="resetGame()" class="text-[10px] text-slate-600 hover:text-red-500 mt-2 uppercase tracking-widest">Spielstand löschen</button>
+        <div class="text-2xl font-black text-white mb-2" id="home-counter">🦊 0</div>
+        <p class="text-slate-500 text-sm italic mb-4">Sammle Taler und entdecke neue Welten</p>
+        <button onclick="resetGame()" class="text-[10px] text-slate-600 hover:text-red-500 uppercase tracking-widest">Spielstand löschen</button>
     </header>
 
-    <!-- Main Grid -->
-    <main class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="main-grid">
-        
-        <!-- Fox Clicker (Immer unlocked) -->
-        <div onclick="openApp('clicker')" class="card-gradient unlocked p-6 rounded-3xl cursor-pointer border flex flex-col items-center text-center">
-            <div class="text-6xl mb-4 text-orange-500">🦊</div>
-            <h2 class="text-2xl font-bold mb-2">Fox Clicker</h2>
-            <p class="text-slate-400 italic">Taler: <span id="card-clicker-val">0</span></p>
+    <main class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+        <!-- Clicker -->
+        <div onclick="openApp('clicker')" class="card-gradient unlocked p-8 rounded-3xl cursor-pointer border flex flex-col items-center text-center h-full">
+            <div class="text-6xl mb-4">🦊</div>
+            <h2 class="text-2xl font-bold mb-1">Fox Clicker</h2>
+            <p class="text-slate-500 italic text-sm">Sammle Taler per Klick</p>
         </div>
 
-        <!-- Stats -->
-        <div id="card-stats" class="card-gradient locked p-6 rounded-3xl border flex flex-col items-center text-center relative">
+        <!-- Stats App -->
+        <div id="card-stats" class="card-gradient locked p-8 rounded-3xl border flex flex-col items-center text-center relative h-full">
             <div class="text-6xl mb-4">⏳</div>
             <h2 class="text-2xl font-bold mb-2">Dein Leben</h2>
-            <div id="action-stats" class="w-full">
-                <p class="text-slate-400 mb-2">Preis: 100 Taler</p>
+            <div id="action-stats" class="w-full mt-auto">
+                <p class="text-slate-400 mb-2 text-sm italic">Preis: 100 Taler</p>
                 <div class="bg-slate-700 h-2 w-full rounded-full overflow-hidden mb-4">
                     <div id="progress-stats" class="bg-orange-500 h-full w-0 transition-all"></div>
                 </div>
-                <button id="btn-stats" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold" disabled>Gesperrt</button>
+                <button id="btn-stats" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold uppercase italic" disabled>Gesperrt</button>
             </div>
         </div>
 
-        <!-- Spend -->
-        <div id="card-spend" class="card-gradient locked p-6 rounded-3xl border flex flex-col items-center text-center relative">
+        <!-- Spend App -->
+        <div id="card-spend" class="card-gradient locked p-8 rounded-3xl border flex flex-col items-center text-center relative h-full">
             <div class="text-6xl mb-4">💰</div>
             <h2 class="text-2xl font-bold mb-2">Geld ausgeben</h2>
-            <div id="action-spend" class="w-full">
-                <p class="text-slate-400 mb-2">Preis: 500 Taler</p>
+            <div id="action-spend" class="w-full mt-auto">
+                <p class="text-slate-400 mb-2 text-sm italic">Preis: 500 Taler</p>
                 <div class="bg-slate-700 h-2 w-full rounded-full overflow-hidden mb-4">
                     <div id="progress-spend" class="bg-orange-500 h-full w-0 transition-all"></div>
                 </div>
-                <button id="btn-spend" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold" disabled>Gesperrt</button>
+                <button id="btn-spend" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold uppercase italic" disabled>Gesperrt</button>
             </div>
         </div>
 
-        <!-- Deep Sea -->
-        <div id="card-deepsea" class="card-gradient locked p-6 rounded-3xl border flex flex-col items-center text-center relative">
+        <!-- Deepsea App -->
+        <div id="card-deepsea" class="card-gradient locked p-8 rounded-3xl border flex flex-col items-center text-center relative h-full">
             <div class="text-6xl mb-4">🌊</div>
             <h2 class="text-2xl font-bold mb-2">Tiefsee-Reise</h2>
-            <div id="action-deepsea" class="w-full">
-                <p class="text-slate-400 mb-2">Preis: 2.000 Taler</p>
+            <div id="action-deepsea" class="w-full mt-auto">
+                <p class="text-slate-400 mb-2 text-sm italic">Preis: 2.000 Taler</p>
                 <div class="bg-slate-700 h-2 w-full rounded-full overflow-hidden mb-4">
                     <div id="progress-deepsea" class="bg-orange-500 h-full w-0 transition-all"></div>
                 </div>
-                <button id="btn-deepsea" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold" disabled>Gesperrt</button>
+                <button id="btn-deepsea" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold uppercase italic" disabled>Gesperrt</button>
             </div>
         </div>
-
     </main>
 
+    <footer class="mt-12 mb-8 text-center text-slate-600 text-[10px] uppercase tracking-widest">
+        &copy; 2026 FUNFOX ENTERTAINMENT
+    </footer>
+
     <!-- App Overlay -->
-    <div id="app-overlay">
-        <nav class="sticky top-0 bg-slate-900/80 backdrop-blur p-4 flex justify-between items-center border-b border-slate-800">
-            <button onclick="closeApp()" class="px-4 py-2 bg-slate-800 rounded-xl hover:bg-slate-700 transition">← Zurück</button>
-            <span id="app-title" class="font-bold text-xl uppercase tracking-widest text-orange-500">App</span>
-            <div id="global-counter" class="text-orange-500 font-bold text-lg">🦊 0</div>
+    <div id="app-overlay" class="overflow-y-auto">
+        <nav class="sticky top-0 bg-slate-900/90 backdrop-blur p-4 flex justify-between items-center border-b border-slate-800">
+            <button onclick="closeApp()" class="px-6 py-2 bg-slate-800 rounded-xl hover:bg-slate-700 transition font-bold uppercase italic text-xs">← Zurück</button>
+            <span id="app-title" class="font-black text-xl uppercase tracking-tighter italic text-orange-500">App</span>
+            <div id="global-counter" class="text-white font-bold text-lg">🦊 0</div>
         </nav>
-        <div id="app-content" class="p-4 min-h-screen flex flex-col items-center"></div>
+        <div id="app-content" class="p-8 min-h-screen flex flex-col items-center"></div>
     </div>
 
     <script>
-        // State
         const defaultState = {
             coins: 0,
-            totalEarned: 0,
-            perClick: 1,
-            autoCps: 0,
             purchased: { stats: false, spend: false, deepsea: false },
-            upgrades: {
-                click: { level: 1, cost: 10 },
-                auto: { level: 0, cost: 50, power: 1 },
-                farm: { level: 0, cost: 250, power: 5 },
-                factory: { level: 0, cost: 1000, power: 25 }
-            }
+            upgrades: { click: 1, auto: 0 },
+            costs: { click: 50, auto: 150 }
         };
 
-        let state = JSON.parse(localStorage.getItem('funfox_save')) || defaultState;
+        let state = JSON.parse(localStorage.getItem('funfox_2026_save')) || defaultState;
 
         const milestones = [
             { id: 'stats', cost: 100, name: "Dein Leben" },
@@ -209,204 +225,318 @@
             { id: 'deepsea', cost: 2000, name: "Tiefsee-Reise" }
         ];
 
-        // Loop
-        setInterval(() => {
-            if (state.autoCps > 0) {
-                state.coins += state.autoCps;
-                state.totalEarned += state.autoCps;
-                updateUI();
-                checkCanPurchase();
-                saveGame();
-            }
-        }, 1000);
+        let autoInterval = null;
 
-        function saveGame() {
-            localStorage.setItem('funfox_save', JSON.stringify(state));
+        // --- PIN MODAL LOGIC ---
+        function openPinModal() {
+            document.getElementById('pin-overlay').style.display = 'flex';
+            document.getElementById('pin-input').value = "";
+            document.getElementById('pin-input').focus();
         }
 
-        function resetGame() {
-            if(confirm("Alles löschen?")) {
-                localStorage.removeItem('funfox_save');
-                location.reload();
+        function closePinModal() {
+            document.getElementById('pin-overlay').style.display = 'none';
+        }
+
+        function checkAdminPin() {
+            const val = document.getElementById('pin-input').value;
+            if (val === "33344") {
+                closePinModal();
+                openAdmin();
+            } else {
+                showNotice("Falsch");
+                document.getElementById('pin-input').value = "";
             }
+        }
+
+        // --- ADMIN PANEL ---
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'x') {
+                e.preventDefault();
+                openPinModal();
+            }
+            if (e.key === "Escape") {
+                closeAdmin();
+                closePinModal();
+            }
+        });
+
+        document.getElementById('pin-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') checkAdminPin();
+        });
+
+        function openAdmin() {
+            document.getElementById('admin-panel').style.display = 'block';
+            document.getElementById('admin-coins-input').value = state.coins;
+            renderAdminList();
+        }
+
+        function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
+
+        function adminSetCoins() {
+            state.coins = parseInt(document.getElementById('admin-coins-input').value) || 0;
+            saveAndRefresh();
+            showNotice("Coins gesetzt!");
+        }
+
+        function renderAdminList() {
+            const list = document.getElementById('admin-unlock-list');
+            list.innerHTML = milestones.map(m => `
+                <div class="flex justify-between items-center bg-slate-900 p-3 rounded-xl border border-slate-700">
+                    <span class="font-bold text-sm uppercase italic">${m.name}</span>
+                    <button onclick="adminToggle('${m.id}')" class="px-4 py-1 rounded-lg text-[10px] font-black ${state.purchased[m.id] ? 'bg-red-500' : 'bg-green-500'}">
+                        ${state.purchased[m.id] ? 'SPERREN' : 'FREISCHALTEN'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function adminToggle(id) {
+            state.purchased[id] = !state.purchased[id];
+            renderAdminList();
+            saveAndRefresh();
+        }
+
+        // --- CORE LOGIC ---
+        function saveAndRefresh() {
+            localStorage.setItem('funfox_2026_save', JSON.stringify(state));
+            updateUI();
+            checkProgress();
+            manageAutoClicker();
         }
 
         function updateUI() {
-            const homeCounter = document.getElementById('home-counter');
-            const cardClickerVal = document.getElementById('card-clicker-val');
-            if(homeCounter) homeCounter.innerText = `🦊 ${state.coins.toLocaleString()}`;
-            if(cardClickerVal) cardClickerVal.innerText = state.coins.toLocaleString();
-
-            const globalCounter = document.getElementById('global-counter');
-            if(globalCounter) globalCounter.innerText = `🦊 ${state.coins.toLocaleString()}`;
-
-            const coinDisplay = document.getElementById('coin-display');
-            if(coinDisplay) coinDisplay.innerText = `🦊 ${state.coins.toLocaleString()}`;
+            const count = state.coins.toLocaleString();
+            document.getElementById('home-counter').innerText = `🦊 ${count}`;
+            if(document.getElementById('global-counter')) document.getElementById('global-counter').innerText = `🦊 ${count}`;
             
-            const cpsDisplay = document.getElementById('cps-display');
-            if(cpsDisplay) cpsDisplay.innerText = `${state.autoCps} Taler / Sekunde`;
-
-            Object.keys(state.upgrades).forEach(key => {
-                const el = document.getElementById(`cost-${key}`);
-                if(el) el.innerText = state.upgrades[key].cost.toLocaleString();
-            });
+            // Refresh current app content if it's the clicker
+            if(document.getElementById('app-overlay').style.display === 'block' && document.getElementById('app-title').innerText === "Fox Clicker") {
+                renderClickerContent();
+            }
         }
 
-        function checkCanPurchase() {
+        function manageAutoClicker() {
+            if(state.upgrades.auto > 0 && !autoInterval) {
+                autoInterval = setInterval(() => {
+                    state.coins += state.upgrades.auto;
+                    updateUI();
+                    checkProgress();
+                    localStorage.setItem('funfox_2026_save', JSON.stringify(state));
+                }, 1000);
+            }
+        }
+
+        function checkProgress() {
             milestones.forEach(m => {
                 const card = document.getElementById(`card-${m.id}`);
                 const btn = document.getElementById(`btn-${m.id}`);
-                const progress = document.getElementById(`progress-${m.id}`);
-                const actionArea = document.getElementById(`action-${m.id}`);
+                const prog = document.getElementById(`progress-${m.id}`);
+                const area = document.getElementById(`action-${m.id}`);
 
-                if (state.purchased[m.id]) {
+                if(!card) return;
+
+                if(state.purchased[m.id]) {
                     card.classList.remove('locked', 'can-buy');
                     card.classList.add('unlocked');
                     card.onclick = () => openApp(m.id);
-                    if(actionArea) actionArea.innerHTML = `<span class="text-green-500 font-bold uppercase tracking-widest text-xs">Freigeschaltet</span>`;
+                    area.innerHTML = `<span class="text-green-500 font-black uppercase italic text-xs tracking-widest">Freigeschaltet</span>`;
                 } else {
-                    const percent = Math.min(100, (state.coins / m.cost) * 100);
-                    if(progress) progress.style.width = percent + "%";
-
-                    if (state.coins >= m.cost) {
+                    const p = Math.min(100, (state.coins / m.cost) * 100);
+                    prog.style.width = p + "%";
+                    if(state.coins >= m.cost) {
                         card.classList.remove('locked');
                         card.classList.add('can-buy');
-                        if(btn) {
-                            btn.innerText = "KAUFEN";
-                            btn.classList.remove('bg-slate-700', 'text-slate-500');
-                            btn.classList.add('bg-orange-600', 'text-white');
-                            btn.disabled = false;
-                            btn.onclick = (e) => {
-                                e.stopPropagation();
-                                confirmPurchase(m.id, m.cost, m.name);
-                            };
-                        }
+                        btn.disabled = false;
+                        btn.innerText = "KAUFEN";
+                        btn.className = "w-full py-2 bg-orange-600 text-white rounded-xl font-black uppercase italic shadow-lg shadow-orange-900/20";
+                        btn.onclick = (e) => { e.stopPropagation(); buy(m.id, m.cost); };
                     } else {
                         card.classList.add('locked');
-                        card.classList.remove('can-buy');
-                        if(btn) {
-                            btn.innerText = "Zu teuer";
-                            btn.classList.add('bg-slate-700', 'text-slate-500');
-                            btn.classList.remove('bg-orange-600', 'text-white');
-                            btn.disabled = true;
-                            btn.onclick = null;
-                        }
+                        card.classList.remove('can-buy', 'unlocked');
+                        btn.disabled = true;
+                        btn.innerText = "Gesperrt";
+                        btn.className = "w-full py-2 bg-slate-700 text-slate-500 rounded-xl font-bold uppercase italic";
                     }
                 }
             });
         }
 
-        function confirmPurchase(id, cost, name) {
-            if (state.coins >= cost) {
+        function buy(id, cost) {
+            if(state.coins >= cost) {
                 state.coins -= cost;
                 state.purchased[id] = true;
-                showAchievement(`${name} freigeschaltet!`);
-                updateUI();
-                checkCanPurchase();
-                saveGame();
+                showAchievement(`${id === 'stats' ? 'Leben' : id === 'spend' ? 'Shop' : 'Tiefsee'} freigeschaltet!`);
+                saveAndRefresh();
             }
         }
 
-        function showAchievement(name) {
-            const popup = document.getElementById('achievement-popup');
-            document.getElementById('achievement-name').innerText = name;
-            popup.classList.add('show');
-            setTimeout(() => popup.classList.remove('show'), 5000);
+        // Clicker Specific Functions
+        function buyClickUpgrade() {
+            if(state.coins >= state.costs.click) {
+                state.coins -= state.costs.click;
+                state.upgrades.click += 1;
+                state.costs.click = Math.floor(state.costs.click * 1.5);
+                saveAndRefresh();
+                showNotice("+1 Klick-Kraft!");
+            }
+        }
+
+        function buyAutoUpgrade() {
+            if(state.coins >= state.costs.auto) {
+                state.coins -= state.costs.auto;
+                state.upgrades.auto += 1;
+                state.costs.auto = Math.floor(state.costs.auto * 1.8);
+                saveAndRefresh();
+                showNotice("+1 Taler/Sek!");
+            }
+        }
+
+        function renderClickerContent() {
+            const content = document.getElementById('app-content');
+            content.innerHTML = `
+                <div class="flex flex-col items-center w-full max-w-md">
+                    <button onclick="clickFox()" class="w-48 h-48 bg-slate-800 rounded-full border-4 border-orange-500/30 flex items-center justify-center text-8xl hover:scale-105 active:scale-95 transition-all shadow-2xl mb-12">🦊</button>
+                    
+                    <div class="grid grid-cols-1 gap-4 w-full">
+                        <button onclick="buyClickUpgrade()" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center group ${state.coins < state.costs.click ? 'opacity-50' : 'hover:border-orange-500'}">
+                            <div class="text-left">
+                                <div class="font-bold text-white">Stärkerer Klick 👆</div>
+                                <div class="text-xs text-slate-500">Aktuell: +${state.upgrades.click}</div>
+                            </div>
+                            <div class="font-black text-orange-500">${state.costs.click} 🦊</div>
+                        </button>
+
+                        <button onclick="buyAutoUpgrade()" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center group ${state.coins < state.costs.auto ? 'opacity-50' : 'hover:border-orange-500'}">
+                            <div class="text-left">
+                                <div class="font-bold text-white">Auto-Sammler 🤖</div>
+                                <div class="text-xs text-slate-500">Aktuell: ${state.upgrades.auto}/s</div>
+                            </div>
+                            <div class="font-black text-orange-500">${state.costs.auto} 🦊</div>
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         const apps = {
             clicker: {
                 title: "Fox Clicker",
-                render: () => `
-                    <div class="flex flex-col items-center w-full max-w-xl">
-                        <div class="text-6xl font-black mb-2 text-orange-500" id="coin-display">🦊 ${state.coins.toLocaleString()}</div>
-                        <div class="text-slate-400 mb-8" id="cps-display">${state.autoCps} Taler / Sekunde</div>
-                        <button id="main-fox-btn" onclick="foxClick()" class="w-48 h-48 bg-slate-800 rounded-full flex items-center justify-center text-8xl shadow-2xl border-4 border-orange-500/20 hover:border-orange-500 transition-all active:scale-95 mb-12">🦊</button>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                            ${Object.keys(state.upgrades).map(key => `
-                                <button onclick="buyUpgrade('${key}')" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 text-left hover:bg-slate-700 transition">
-                                    <div class="font-bold text-lg">${getUpgradeName(key)}</div>
-                                    <div class="text-sm text-slate-400">Preis: <span id="cost-${key}">${state.upgrades[key].cost.toLocaleString()}</span></div>
-                                    <div class="text-xs text-orange-400">+${state.upgrades[key].power || 1} ${key==='click' ? 'pro Klick' : '/ Sek'}</div>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>`
-            },
-            spend: {
-                title: "Geld ausgeben",
-                render: () => `<div class="text-center p-10"><h2 class="text-3xl font-black mb-4">Geld-Simulator</h2><p>Gib dein virtuelles Vermögen aus!</p></div>`
+                render: renderClickerContent
             },
             stats: {
                 title: "Lebens-Statistik",
-                render: () => `<div class="text-center p-10"><h2 class="text-3xl font-black mb-4">Statistiken</h2><p>Berechne spannende Fakten über dein Leben.</p></div>`
+                render: () => {
+                    document.getElementById('app-content').innerHTML = `
+                        <div class="max-w-xl w-full">
+                            <div class="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl mb-8 text-center">
+                                <h3 class="text-2xl font-black uppercase italic mb-6">Wann bist du geboren?</h3>
+                                <input type="date" id="bday" onchange="calcLife()" class="w-full bg-slate-900 border border-slate-600 p-4 rounded-2xl text-xl outline-none focus:border-orange-500 transition text-white">
+                            </div>
+                            <div id="stats-output" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700 text-center">
+                                    <div class="text-xs uppercase text-slate-500 mb-1">Tage gelebt</div>
+                                    <div id="days-val" class="text-3xl font-black text-orange-500 italic">0</div>
+                                </div>
+                                <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700 text-center">
+                                    <div class="text-xs uppercase text-slate-500 mb-1">Sekunden alt</div>
+                                    <div id="sec-val" class="text-xl font-mono text-blue-400">0</div>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            },
+            spend: {
+                title: "Geld ausgeben",
+                render: () => {
+                    document.getElementById('app-content').innerHTML = `
+                        <div class="max-w-md w-full space-y-4">
+                            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex justify-between items-center">
+                                <span class="font-bold">Eisbecher 🍦</span>
+                                <button onclick="simSpend(5)" class="bg-orange-600 px-6 py-2 rounded-xl font-black italic">5 🦊</button>
+                            </div>
+                            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex justify-between items-center">
+                                <span class="font-bold">Gaming PC 🖥️</span>
+                                <button onclick="simSpend(2500)" class="bg-orange-600 px-6 py-2 rounded-xl font-black italic">2.5k 🦊</button>
+                            </div>
+                        </div>`;
+                }
             },
             deepsea: {
                 title: "Tiefsee-Reise",
-                render: () => `<div class="h-[1000px] bg-blue-900 w-full flex items-center justify-center font-bold text-4xl">ABGRUND...</div>`
+                render: () => {
+                    document.getElementById('app-content').innerHTML = `
+                        <div class="w-full max-w-xl text-center py-20 bg-gradient-to-b from-blue-900 to-black rounded-3xl border border-blue-800/30">
+                            <h2 class="text-4xl font-black italic text-blue-200 mb-12">Abstieg in die Tiefe</h2>
+                            <div class="flex justify-center">
+                                <div class="w-1 bg-blue-500/20 h-64 relative">
+                                    <div class="absolute -left-24 top-0 text-xs italic text-blue-300 whitespace-nowrap">0m - Sonne</div>
+                                    <div class="absolute -left-24 top-1/2 text-xs italic text-blue-500 whitespace-nowrap">1000m - Dunkel</div>
+                                    <div class="absolute -left-24 bottom-0 text-xs italic text-blue-800 whitespace-nowrap">4000m - Grund</div>
+                                </div>
+                            </div>
+                            <p class="mt-12 text-slate-500 italic">Hier wartet das Unbekannte...</p>
+                        </div>`;
+                }
             }
         };
 
-        function getUpgradeName(key) {
-            return {click: "Pfoten-Power", auto: "Auto-Klicker", farm: "Fuchs-Farm", factory: "Taler-Fabrik"}[key];
+        function clickFox() {
+            state.coins += state.upgrades.click;
+            saveAndRefresh();
         }
 
-        function foxClick() {
-            state.coins += state.perClick;
-            state.totalEarned += state.perClick;
-            const btn = document.getElementById('main-fox-btn');
-            if(btn) {
-                btn.classList.add('click-pop');
-                setTimeout(() => btn.classList.remove('click-pop'), 100);
-            }
-            updateUI();
-            checkCanPurchase();
-            saveGame();
+        function simSpend(amt) {
+            if(state.coins >= amt) {
+                state.coins -= amt;
+                saveAndRefresh();
+                showNotice("Gekauft!");
+            } else showNotice("Zu wenig Taler!");
         }
 
-        function buyUpgrade(key) {
-            const up = state.upgrades[key];
-            if (state.coins >= up.cost) {
-                state.coins -= up.cost;
-                if(key === 'click') state.perClick += 1;
-                else state.autoCps += up.power;
-                up.cost = Math.floor(up.cost * 1.6);
-                updateUI();
-                checkCanPurchase();
-                saveGame();
-            } else {
-                showNotice("Nicht genug Taler!");
+        function calcLife() {
+            const birth = new Date(document.getElementById('bday').value);
+            const now = new Date();
+            const diff = now - birth;
+            if(diff > 0) {
+                document.getElementById('stats-output').classList.remove('hidden');
+                document.getElementById('days-val').innerText = Math.floor(diff / (1000*60*60*24)).toLocaleString();
+                document.getElementById('sec-val').innerText = Math.floor(diff / 1000).toLocaleString();
             }
         }
 
         function openApp(id) {
             const app = apps[id];
-            if(!app) return;
             document.getElementById('app-title').innerText = app.title;
-            document.getElementById('app-content').innerHTML = app.render();
+            app.render();
             document.getElementById('app-overlay').style.display = 'block';
-            document.body.style.overflow = 'hidden';
             updateUI();
         }
 
-        function closeApp() {
-            document.getElementById('app-overlay').style.display = 'none';
-            document.body.style.overflow = 'auto';
-            checkCanPurchase();
+        function closeApp() { document.getElementById('app-overlay').style.display = 'none'; }
+
+        function resetGame() { if(confirm("Spielstand löschen?")) { localStorage.clear(); location.reload(); } }
+
+        function showNotice(t) {
+            const d = document.createElement('div');
+            d.className = "fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-600 px-8 py-3 rounded-full font-bold shadow-2xl z-[500] text-sm";
+            d.innerText = t;
+            document.body.appendChild(d);
+            setTimeout(() => {
+                d.style.transition = "opacity 0.5s";
+                d.style.opacity = "0";
+                setTimeout(() => d.remove(), 500);
+            }, 1500);
         }
 
-        function showNotice(text) {
-            const msg = document.createElement('div');
-            msg.className = "fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full z-[500] border border-slate-600 shadow-2xl";
-            msg.innerText = text;
-            document.body.appendChild(msg);
-            setTimeout(() => msg.remove(), 2000);
+        function showAchievement(t) {
+            document.getElementById('achievement-name').innerText = t;
+            const p = document.getElementById('achievement-popup');
+            p.classList.add('show');
+            setTimeout(() => p.classList.remove('show'), 4000);
         }
 
-        window.onload = () => {
-            updateUI();
-            checkCanPurchase();
-        };
+        window.onload = saveAndRefresh;
     </script>
 </body>
 </html>
