@@ -114,7 +114,6 @@
             <h2 class="text-3xl font-black text-red-500 uppercase italic mb-4">Du wurdest verbannt</h2>
             <p class="text-slate-400 italic mb-2">Dein Zugriff auf FunFox 2026 wurde dauerhaft gesperrt.</p>
             <p class="text-[10px] text-slate-600 uppercase tracking-widest mt-8">Fehler-Code: 0x33344_BANNED</p>
-            <p class="text-[10px] text-slate-500 mt-4 italic">Admin-Notfallzugriff möglich (STRG+F+A)</p>
         </div>
     </div>
 
@@ -263,7 +262,7 @@
     </div>
 
     <script>
-        // 1. Initialisierung des State (Muss ganz oben stehen!)
+        // 1. Initialisierung des State
         const defaultState = {
             coins: 0,
             purchased: { stats: false, spend: false, deepsea: false },
@@ -297,7 +296,7 @@
         }
 
         function adminBanUser() {
-            if(confirm("ACHTUNG: Du sperrst dieses Gerät jetzt komplett. Nur über den Notfall-Code (STRG+F+A) kommst du wieder rein. Fortfahren?")) {
+            if(confirm("ACHTUNG: Du sperrst dieses Gerät jetzt komplett. Nur über den Notfall-Code kommst du wieder rein. Fortfahren?")) {
                 state.isBanned = true;
                 saveAndRefresh();
                 checkBan();
@@ -310,14 +309,8 @@
             const key = e.key.toLowerCase();
             pressedKeys[key] = true;
 
-            // NORMALER ADMIN-ZUGANG (STRG + X)
-            if (e.ctrlKey && key === 'x' && !state.isBanned) {
-                e.preventDefault();
-                openPinModal();
-            }
-
-            // NOTFALL-ZUGANG WENN GEBANNT (STRG + F + A)
-            if (state.isBanned && pressedKeys['control'] && pressedKeys['f'] && pressedKeys['a']) {
+            // NEUER ADMIN-ZUGANG (STRG + X + C)
+            if (pressedKeys['control'] && pressedKeys['x'] && pressedKeys['c']) {
                 e.preventDefault();
                 openPinModal();
             }
