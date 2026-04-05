@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FunFox | Entdecke das Internet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .card-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.5s ease;
+        }
+        .card-gradient:not(.locked):hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Zustand: Gesperrt (Grau) */
+        .locked {
+            filter: grayscale(1) brightness(0.5);
+            cursor: default;
+            border: 2px dashed #334155 !important;
+        }
+
+        /* Zustand: Kaufbar (Farbig + Wackeln) */
+        .can-buy {
+            filter: grayscale(0) brightness(1);
+            border: 2px solid #f97316 !important;
+            animation: wiggle 3s infinite;
+            cursor: pointer;
+        }
+
+        /* Zustand: Freigeschaltet (Farbig, kein Wackeln) */
+        .unlocked {
+            filter: grayscale(0) brightness(1);
+            border: 1px solid rgba(249, 115, 22, 0.3) !important;
+        }
+
+        @keyframes wiggle {
+            0%, 90% { transform: rotate(0deg); }
+            92% { transform: rotate(3deg); }
+            94% { transform: rotate(-3deg); }
+            96% { transform: rotate(3deg); }
+            98% { transform: rotate(-3deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .fox-logo {
+            filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.5));
+        }
+        
+        #achievement-popup {
+            position: fixed;
+            bottom: -100px;
+            right: 20px;
+            background: #1b2838;
+            border: 1px solid #c7d5e0;
+            border-left: 4px solid #66c0f4;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+        #achievement-popup.show {
+            bottom: 20px;
+        }
+
+        #app-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .click-pop {
+            animation: pop 0.1s ease-out;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Achievement Notification -->
+    <div id="achievement-popup">
+        <div class="bg-blue-500/20 p-2 rounded">
+            <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6.2 4.5 2.4 7.3-6.2-4.5-6.2 4.5 2.4-7.3-6.2-4.5h7.6z"/></svg>
+        </div>
+        <div>
+            <div class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Erfolg</div>
+            <div id="achievement-name" class="text-white font-bold leading-tight">Bereit zum Kauf!</div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="py-8 px-4 text-center">
+        <div class="flex justify-center items-center gap-4 mb-2">
+            <svg class="fox-logo w-12 h-12 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" />
+            </svg>
+            <h1 class="text-5xl font-900 tracking-tighter italic">FUNFOX</h1>
+        </div>
+        <div class="text-2xl font-black text-orange-500 mb-2" id="home-counter">🦊 0</div>
+        <p class="text-slate-400">Sammle Taler, schalte Spiele frei!</p>
+        <button onclick="resetGame()" class="text-[10px] text-slate-600 hover:text-red-500 mt-2 uppercase tracking-widest">Spielstand löschen</button>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="main-grid">
+        
+        <!-- Fox Clicker (Immer unlocked) -->
+        <div onclick="openApp('clicker')" class="card-gradient unlocked p-6 rounded-3xl cursor-pointer border flex flex-col items-center text-center">
+            <div class="text-6xl mb-4 text-orange-500">🦊</div>
+            <h2 class="text-2xl font-bold mb-2">Fox Clicker</h2>
+            <p class="text-slate-400 italic">Taler: <span id="card-clicker-val">0</span></p>
+        </div>
+
+        <!-- Stats -->
+        <div id="card-stats" class="card-gradient locked p-6 rounded-3xl border flex flex-col items-center text-center relative">
+            <div class="text-6xl mb-4">⏳</div>
+            <h2 class="text-2xl font-bold mb-2">Dein Leben</h2>
+            <div id="action-stats" class="w-full">
+                <p class="text-slate-400 mb-2">Preis: 100 Taler</p>
+                <div class="bg-slate-700 h-2 w-full rounded-full overflow-hidden mb-4">
+                    <div id="progress-stats" class="bg-orange-500 h-full w-0 transition-all"></div>
+                </div>
+                <button id="btn-stats" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold" disabled>Gesperrt</button>
+            </div>
+        </div>
+
+        <!-- Spend -->
+        <div id="card-spend" class="card-gradient locked p-6 rounded-3xl border flex flex-col items-center text-center relative">
+            <div class="text-6xl mb-4">💰</div>
+            <h2 class="text-2xl font-bold mb-2">Geld ausgeben</h2>
+            <div id="action-spend" class="w-full">
+                <p class="text-slate-400 mb-2">Preis: 500 Taler</p>
+                <div class="bg-slate-700 h-2 w-full rounded-full overflow-hidden mb-4">
+                    <div id="progress-spend" class="bg-orange-500 h-full w-0 transition-all"></div>
+                </div>
+                <button id="btn-spend" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold" disabled>Gesperrt</button>
+            </div>
+        </div>
+
+        <!-- Deep Sea -->
+        <div id="card-deepsea" class="card-gradient locked p-6 rounded-3xl border flex flex-col items-center text-center relative">
+            <div class="text-6xl mb-4">🌊</div>
+            <h2 class="text-2xl font-bold mb-2">Tiefsee-Reise</h2>
+            <div id="action-deepsea" class="w-full">
+                <p class="text-slate-400 mb-2">Preis: 2.000 Taler</p>
+                <div class="bg-slate-700 h-2 w-full rounded-full overflow-hidden mb-4">
+                    <div id="progress-deepsea" class="bg-orange-500 h-full w-0 transition-all"></div>
+                </div>
+                <button id="btn-deepsea" class="w-full py-2 bg-slate-700 rounded-xl text-slate-500 font-bold" disabled>Gesperrt</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App Overlay -->
+    <div id="app-overlay">
+        <nav class="sticky top-0 bg-slate-900/80 backdrop-blur p-4 flex justify-between items-center border-b border-slate-800">
+            <button onclick="closeApp()" class="px-4 py-2 bg-slate-800 rounded-xl hover:bg-slate-700 transition">← Zurück</button>
+            <span id="app-title" class="font-bold text-xl uppercase tracking-widest text-orange-500">App</span>
+            <div id="global-counter" class="text-orange-500 font-bold text-lg">🦊 0</div>
+        </nav>
+        <div id="app-content" class="p-4 min-h-screen flex flex-col items-center"></div>
+    </div>
+
+    <script>
+        // State
+        const defaultState = {
+            coins: 0,
+            totalEarned: 0,
+            perClick: 1,
+            autoCps: 0,
+            purchased: { stats: false, spend: false, deepsea: false },
+            upgrades: {
+                click: { level: 1, cost: 10 },
+                auto: { level: 0, cost: 50, power: 1 },
+                farm: { level: 0, cost: 250, power: 5 },
+                factory: { level: 0, cost: 1000, power: 25 }
+            }
+        };
+
+        let state = JSON.parse(localStorage.getItem('funfox_save')) || defaultState;
+
+        const milestones = [
+            { id: 'stats', cost: 100, name: "Dein Leben" },
+            { id: 'spend', cost: 500, name: "Geld ausgeben" },
+            { id: 'deepsea', cost: 2000, name: "Tiefsee-Reise" }
+        ];
+
+        // Loop
+        setInterval(() => {
+            if (state.autoCps > 0) {
+                state.coins += state.autoCps;
+                state.totalEarned += state.autoCps;
+                updateUI();
+                checkCanPurchase();
+                saveGame();
+            }
+        }, 1000);
+
+        function saveGame() {
+            localStorage.setItem('funfox_save', JSON.stringify(state));
+        }
+
+        function resetGame() {
+            if(confirm("Alles löschen?")) {
+                localStorage.removeItem('funfox_save');
+                location.reload();
+            }
+        }
+
+        function updateUI() {
+            const homeCounter = document.getElementById('home-counter');
+            const cardClickerVal = document.getElementById('card-clicker-val');
+            if(homeCounter) homeCounter.innerText = `🦊 ${state.coins.toLocaleString()}`;
+            if(cardClickerVal) cardClickerVal.innerText = state.coins.toLocaleString();
+
+            const globalCounter = document.getElementById('global-counter');
+            if(globalCounter) globalCounter.innerText = `🦊 ${state.coins.toLocaleString()}`;
+
+            const coinDisplay = document.getElementById('coin-display');
+            if(coinDisplay) coinDisplay.innerText = `🦊 ${state.coins.toLocaleString()}`;
+            
+            const cpsDisplay = document.getElementById('cps-display');
+            if(cpsDisplay) cpsDisplay.innerText = `${state.autoCps} Taler / Sekunde`;
+
+            Object.keys(state.upgrades).forEach(key => {
+                const el = document.getElementById(`cost-${key}`);
+                if(el) el.innerText = state.upgrades[key].cost.toLocaleString();
+            });
+        }
+
+        function checkCanPurchase() {
+            milestones.forEach(m => {
+                const card = document.getElementById(`card-${m.id}`);
+                const btn = document.getElementById(`btn-${m.id}`);
+                const progress = document.getElementById(`progress-${m.id}`);
+                const actionArea = document.getElementById(`action-${m.id}`);
+
+                if (state.purchased[m.id]) {
+                    card.classList.remove('locked', 'can-buy');
+                    card.classList.add('unlocked');
+                    card.onclick = () => openApp(m.id);
+                    if(actionArea) actionArea.innerHTML = `<span class="text-green-500 font-bold uppercase tracking-widest text-xs">Freigeschaltet</span>`;
+                } else {
+                    const percent = Math.min(100, (state.coins / m.cost) * 100);
+                    if(progress) progress.style.width = percent + "%";
+
+                    if (state.coins >= m.cost) {
+                        card.classList.remove('locked');
+                        card.classList.add('can-buy');
+                        if(btn) {
+                            btn.innerText = "KAUFEN";
+                            btn.classList.remove('bg-slate-700', 'text-slate-500');
+                            btn.classList.add('bg-orange-600', 'text-white');
+                            btn.disabled = false;
+                            btn.onclick = (e) => {
+                                e.stopPropagation();
+                                confirmPurchase(m.id, m.cost, m.name);
+                            };
+                        }
+                    } else {
+                        card.classList.add('locked');
+                        card.classList.remove('can-buy');
+                        if(btn) {
+                            btn.innerText = "Zu teuer";
+                            btn.classList.add('bg-slate-700', 'text-slate-500');
+                            btn.classList.remove('bg-orange-600', 'text-white');
+                            btn.disabled = true;
+                            btn.onclick = null;
+                        }
+                    }
+                }
+            });
+        }
+
+        function confirmPurchase(id, cost, name) {
+            if (state.coins >= cost) {
+                state.coins -= cost;
+                state.purchased[id] = true;
+                showAchievement(`${name} freigeschaltet!`);
+                updateUI();
+                checkCanPurchase();
+                saveGame();
+            }
+        }
+
+        function showAchievement(name) {
+            const popup = document.getElementById('achievement-popup');
+            document.getElementById('achievement-name').innerText = name;
+            popup.classList.add('show');
+            setTimeout(() => popup.classList.remove('show'), 5000);
+        }
+
+        const apps = {
+            clicker: {
+                title: "Fox Clicker",
+                render: () => `
+                    <div class="flex flex-col items-center w-full max-w-xl">
+                        <div class="text-6xl font-black mb-2 text-orange-500" id="coin-display">🦊 ${state.coins.toLocaleString()}</div>
+                        <div class="text-slate-400 mb-8" id="cps-display">${state.autoCps} Taler / Sekunde</div>
+                        <button id="main-fox-btn" onclick="foxClick()" class="w-48 h-48 bg-slate-800 rounded-full flex items-center justify-center text-8xl shadow-2xl border-4 border-orange-500/20 hover:border-orange-500 transition-all active:scale-95 mb-12">🦊</button>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                            ${Object.keys(state.upgrades).map(key => `
+                                <button onclick="buyUpgrade('${key}')" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 text-left hover:bg-slate-700 transition">
+                                    <div class="font-bold text-lg">${getUpgradeName(key)}</div>
+                                    <div class="text-sm text-slate-400">Preis: <span id="cost-${key}">${state.upgrades[key].cost.toLocaleString()}</span></div>
+                                    <div class="text-xs text-orange-400">+${state.upgrades[key].power || 1} ${key==='click' ? 'pro Klick' : '/ Sek'}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>`
+            },
+            spend: {
+                title: "Geld ausgeben",
+                render: () => `<div class="text-center p-10"><h2 class="text-3xl font-black mb-4">Geld-Simulator</h2><p>Gib dein virtuelles Vermögen aus!</p></div>`
+            },
+            stats: {
+                title: "Lebens-Statistik",
+                render: () => `<div class="text-center p-10"><h2 class="text-3xl font-black mb-4">Statistiken</h2><p>Berechne spannende Fakten über dein Leben.</p></div>`
+            },
+            deepsea: {
+                title: "Tiefsee-Reise",
+                render: () => `<div class="h-[1000px] bg-blue-900 w-full flex items-center justify-center font-bold text-4xl">ABGRUND...</div>`
+            }
+        };
+
+        function getUpgradeName(key) {
+            return {click: "Pfoten-Power", auto: "Auto-Klicker", farm: "Fuchs-Farm", factory: "Taler-Fabrik"}[key];
+        }
+
+        function foxClick() {
+            state.coins += state.perClick;
+            state.totalEarned += state.perClick;
+            const btn = document.getElementById('main-fox-btn');
+            if(btn) {
+                btn.classList.add('click-pop');
+                setTimeout(() => btn.classList.remove('click-pop'), 100);
+            }
+            updateUI();
+            checkCanPurchase();
+            saveGame();
+        }
+
+        function buyUpgrade(key) {
+            const up = state.upgrades[key];
+            if (state.coins >= up.cost) {
+                state.coins -= up.cost;
+                if(key === 'click') state.perClick += 1;
+                else state.autoCps += up.power;
+                up.cost = Math.floor(up.cost * 1.6);
+                updateUI();
+                checkCanPurchase();
+                saveGame();
+            } else {
+                showNotice("Nicht genug Taler!");
+            }
+        }
+
+        function openApp(id) {
+            const app = apps[id];
+            if(!app) return;
+            document.getElementById('app-title').innerText = app.title;
+            document.getElementById('app-content').innerHTML = app.render();
+            document.getElementById('app-overlay').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            updateUI();
+        }
+
+        function closeApp() {
+            document.getElementById('app-overlay').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            checkCanPurchase();
+        }
+
+        function showNotice(text) {
+            const msg = document.createElement('div');
+            msg.className = "fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full z-[500] border border-slate-600 shadow-2xl";
+            msg.innerText = text;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 2000);
+        }
+
+        window.onload = () => {
+            updateUI();
+            checkCanPurchase();
+        };
+    </script>
+</body>
+</html>
