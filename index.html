@@ -105,7 +105,7 @@
 
     <!-- Minimal PIN Modal -->
     <div id="pin-overlay">
-        <div class="w-full max-w-sm px-6 text-center">
+        <div class="w-full max-sm px-6 text-center">
             <input type="password" id="pin-input" placeholder="•••••" class="w-full bg-transparent border-b-2 border-slate-700 p-4 text-center text-4xl tracking-[0.5em] outline-none focus:border-orange-500 mb-8 transition-colors text-white">
             <button onclick="checkAdminPin()" class="w-full py-4 text-slate-400 hover:text-orange-500 font-black uppercase italic text-xs tracking-[0.3em] transition-colors mb-4">Bestätigen</button>
             <button onclick="closePinModal()" class="text-slate-600 hover:text-white text-[10px] uppercase tracking-widest transition-colors">Abbrechen</button>
@@ -148,7 +148,6 @@
 
     <header class="py-8 px-4 text-center">
         <div class="flex justify-center items-center gap-4 mb-2">
-            <!-- Dein neues Icon auch als Logo-Ersatz möglich -->
             <img src="https://raw.githubusercontent.com/FoxyYT33344/FunFox/main/FunFox.ico" alt="Logo" class="w-12 h-12 rounded-lg shadow-lg">
             <h1 class="text-5xl font-black tracking-tighter italic text-orange-500">FUNFOX</h1>
         </div>
@@ -236,6 +235,7 @@
         ];
 
         let autoInterval = null;
+        let activeApp = null;
 
         // --- PIN MODAL LOGIC ---
         function openPinModal() {
@@ -321,9 +321,9 @@
             document.getElementById('home-counter').innerText = `🦊 ${count}`;
             if(document.getElementById('global-counter')) document.getElementById('global-counter').innerText = `🦊 ${count}`;
             
-            // Refresh current app content if it's the clicker
-            if(document.getElementById('app-overlay').style.display === 'block' && document.getElementById('app-title').innerText === "Fox Clicker") {
-                renderClickerContent();
+            // AUTOMATISCHE AKTUALISIERUNG DER UPGRADES IM CLICKER
+            if(activeApp === 'clicker') {
+                updateUpgradeButtons();
             }
         }
 
@@ -394,6 +394,7 @@
                 state.costs.click = Math.floor(state.costs.click * 1.5);
                 saveAndRefresh();
                 showNotice("+1 Klick-Kraft!");
+                renderClickerContent(); // Re-render for new values
             }
         }
 
@@ -404,6 +405,36 @@
                 state.costs.auto = Math.floor(state.costs.auto * 1.8);
                 saveAndRefresh();
                 showNotice("+1 Taler/Sek!");
+                renderClickerContent(); // Re-render for new values
+            }
+        }
+
+        function updateUpgradeButtons() {
+            const btnClick = document.getElementById('upgrade-click');
+            const btnAuto = document.getElementById('upgrade-auto');
+            
+            if(btnClick) {
+                if(state.coins >= state.costs.click) {
+                    btnClick.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btnClick.classList.add('hover:border-orange-500', 'hover:bg-slate-700');
+                    btnClick.disabled = false;
+                } else {
+                    btnClick.classList.add('opacity-50', 'cursor-not-allowed');
+                    btnClick.classList.remove('hover:border-orange-500', 'hover:bg-slate-700');
+                    btnClick.disabled = true;
+                }
+            }
+            
+            if(btnAuto) {
+                if(state.coins >= state.costs.auto) {
+                    btnAuto.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btnAuto.classList.add('hover:border-orange-500', 'hover:bg-slate-700');
+                    btnAuto.disabled = false;
+                } else {
+                    btnAuto.classList.add('opacity-50', 'cursor-not-allowed');
+                    btnAuto.classList.remove('hover:border-orange-500', 'hover:bg-slate-700');
+                    btnAuto.disabled = true;
+                }
             }
         }
 
@@ -417,24 +448,25 @@
                     </button>
                     
                     <div class="grid grid-cols-1 gap-4 w-full">
-                        <button onclick="buyClickUpgrade()" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center group transition-all ${state.coins < state.costs.click ? 'opacity-50 cursor-not-allowed' : 'hover:border-orange-500 hover:bg-slate-700'}">
+                        <button id="upgrade-click" onclick="buyClickUpgrade()" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center group transition-all">
                             <div class="text-left">
                                 <div class="font-bold text-white">Stärkerer Klick 👆</div>
-                                <div class="text-xs text-slate-500">Aktuell: +${state.upgrades.click}</div>
+                                <div class="text-xs text-slate-500 italic">Aktuell: +${state.upgrades.click}</div>
                             </div>
                             <div class="font-black text-orange-500">${state.costs.click.toLocaleString()} 🦊</div>
                         </button>
 
-                        <button onclick="buyAutoUpgrade()" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center group transition-all ${state.coins < state.costs.auto ? 'opacity-50 cursor-not-allowed' : 'hover:border-orange-500 hover:bg-slate-700'}">
+                        <button id="upgrade-auto" onclick="buyAutoUpgrade()" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center group transition-all">
                             <div class="text-left">
                                 <div class="font-bold text-white">Auto-Sammler 🤖</div>
-                                <div class="text-xs text-slate-500">Aktuell: ${state.upgrades.auto}/s</div>
+                                <div class="text-xs text-slate-500 italic">Aktuell: ${state.upgrades.auto}/s</div>
                             </div>
                             <div class="font-black text-orange-500">${state.costs.auto.toLocaleString()} 🦊</div>
                         </button>
                     </div>
                 </div>
             `;
+            updateUpgradeButtons();
         }
 
         const apps = {
@@ -526,6 +558,7 @@
         }
 
         function openApp(id) {
+            activeApp = id;
             const app = apps[id];
             document.getElementById('app-title').innerText = app.title;
             app.render();
@@ -533,7 +566,10 @@
             updateUI();
         }
 
-        function closeApp() { document.getElementById('app-overlay').style.display = 'none'; }
+        function closeApp() { 
+            activeApp = null;
+            document.getElementById('app-overlay').style.display = 'none'; 
+        }
 
         function resetGame() { if(confirm("Spielstand löschen?")) { localStorage.clear(); location.reload(); } }
 
